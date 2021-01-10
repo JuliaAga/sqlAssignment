@@ -46,7 +46,7 @@ FROM (
 	SELECT 
 		employer_id, 
 		vacancy_id, 
-		COUNT(1) AS quantity 
+		COUNT(response.id) AS quantity 
 	FROM response
 	LEFT JOIN vacancy on response.vacancy_id = vacancy.id
 	GROUP BY employer_id, vacancy_id 
@@ -74,11 +74,18 @@ SELECT
 FROM cte_quantity;
 
 --Вывести минимальное и максимальное время от создания вакансии до первого отклика для каждого города.
-SELECT 
-	location.name AS City,
-	MIN(response.date_create - vacancy.date_create) AS min_time,
-	MAX(response.date_create - vacancy.date_create) AS max_time
-FROM response
-LEFT JOIN vacancy ON response.vacancy_id = vacancy.id
-LEFT JOIN location ON vacancy.location_id = location.id
-GROUP BY location.name
+WITH firstResponse AS (
+    SELECT vac.id vac_id,
+           loc.name,
+           loc.id loc_id,
+           min(resp.date_create - vac.date_create) AS timeToFirst
+    FROM response resp
+        LEFT JOIN vacancy vac ON resp.vacancy_id = vac.id
+        LEFT JOIN location loc ON vac.location_id = loc.id
+    GROUP BY vac.id , loc.id
+)
+SELECT name,
+       max(timeToFirst),
+       min(timeToFirst)
+FROM firstResponse
+GROUP BY loc_id, name;
